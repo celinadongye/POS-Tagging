@@ -16,10 +16,12 @@ except NameError:
     import nltk
 
 from nltk.corpus import brown
-from nltk.tag import map_tag
+from nltk.tag import map_tag, tagset_mapping
 
-assert map_tag('brown', 'universal', 'NR-TL') == 'NOUN', '''
-Brown-to-Universal POS tag map is out of date.'''
+if map_tag('brown', 'universal', 'NR-TL') != 'NOUN':
+    # Out-of-date tagset, we add a few that we need
+    tm=tagset_mapping('en-brown','universal')
+    tm['NR-TL']=tm['NR-TL-HL']='NOUN'
 
 class HMM:
     def __init__(self, train_data, test_data):
@@ -58,16 +60,17 @@ class HMM:
         :return: The emission probability distribution and a list of the states
         :rtype: Tuple[ConditionalProbDist, list(str)]
         """
-        raise NotImplementedError('HMM.emission_model')
+        # raise NotImplementedError('HMM.emission_model')
         # TODO prepare data
 
         # Don't forget to lowercase the observation otherwise it mismatches the test data
         # Do NOT add <s> or </s> to the input sentences
-        data = 'fixme'
+        data = [[(word.lower(),tag) for (word,tag) in sent] for sent in train_data]
 
         # TODO compute the emission model
-        emission_FD = 'fixme'
-        self.emission_PD = 'fixme'
+        emission_FD = nltk.probability.ConditionalFreqDist(data)
+        LidstoneProbDist = [emission_FD, ]
+        self.emission_PD = nltk.probability.ConditionalProbDist(emission_FD, LidstoneProbDist)
         self.states = 'fixme'
 
         return self.emission_PD, self.states
@@ -85,7 +88,7 @@ class HMM:
         :return: log base 2 of the estimated emission probability
         :rtype: float
         """
-        raise NotImplementedError(('HMM.elprob',"'...'"))
+        raise NotImplementedError('HMM.elprob')
         return ... # fixme
 
     # Compute transition model using ConditionalProbDist with a LidstonelprobDist estimator.
@@ -129,7 +132,7 @@ class HMM:
         :return: log base 2 of the estimated transition probability
         :rtype: float
         """
-        raise NotImplementedError(('HMM.tlprob',"'...'"))
+        raise NotImplementedError('HMM.tlprob')
         return ... # fixme
 
     # Train the HMM
@@ -174,7 +177,7 @@ class HMM:
         :type observations: list(str)
         :return: List of tags corresponding to each word of the input
         """
-        raise NotImplementedError(('HMM.tag',"'...'"))
+        raise NotImplementedError('HMM.tag')
         tags = []
 
         for t in ...: # fixme to iterate over steps
@@ -202,12 +205,13 @@ class HMM:
 
         :param state: A tag name
         :type state: str
-        :param step: The (0-origin) number of a step
+        :param step: The (0-origin) number of a step:  if negative,
+          counting backwards from the end, i.e. -1 means the last (</s>) step
         :type step: int
         :return: The value (a cost) for state as of step
         :rtype: float
         """
-        raise NotImplementedError(('HMM.get_viterbi_value',"'...'"))
+        raise NotImplementedError('HMM.get_viterbi_value')
         return ... # fix me
 
     # Access function for testing the backpointer data structure
@@ -219,22 +223,27 @@ class HMM:
 
         :param state: A tag name
         :type state: str
-        :param step: The (0-origin) number of a step
+        :param step: The (0-origin) number of a step:  if negative,
+          counting backwards from the end, i.e. -1 means the last (</s>) step
         :type step: str
         :return: The state name to go back to at step-1
         :rtype: str
         """
-        raise NotImplementedError(('HMM.get_backpointer_value',"'...'"))
+        raise NotImplementedError('HMM.get_backpointer_value')
         return ... # fix me
 
 def answer_question4b():
     """
-    Report a tagged sequence that is incorrect
-    :rtype: str
+    Report a hand-chosen tagged sequence that is incorrect, correct it
+    and discuss
+    :rtype: list(tuple(str,str)), list(tuple(str,str)), str
     :return: your answer [max 280 chars]
     """
-    raise NotImplementedError(('answer_question4b','([],[],"")'))
+    raise NotImplementedError('answer_question4b')
 
+    # One sentence, i.e. a list of word/tag pairs, in two versions
+    #  1) As tagged by your HMM
+    #  2) With wrong tags corrected by hand
     tagged_sequence = 'fixme'
     correct_sequence = 'fixme'
     # Why do you think the tagger tagged this example incorrectly?
@@ -254,7 +263,7 @@ def answer_question5():
     :rtype: str
     :return: your answer [max 500 chars]
     """
-    raise NotImplementedError(('answer_question5',"''"))
+    raise NotImplementedError('answer_question5')
 
     return inspect.cleandoc("""\
     fill me in""")[0:500]
@@ -268,7 +277,7 @@ def answer_question6():
     :rtype: str
     :return: your answer [max 500 chars]
     """
-    raise NotImplementedError(('answer_question6',"''"))
+    raise NotImplementedError('answer_question6')
 
     return inspect.cleandoc("""\
     fill me in""")[0:500]
@@ -289,10 +298,10 @@ def answers():
 
     # Divide corpus into train and test data.
     test_size = 500
-    train_size = 0 # fixme
+    train_size = 4123 
 
-    test_data_universal = tagged_sentences_universal[1:2] # fixme
-    train_data_universal = tagged_sentences_universal[3:4] # fixme
+    test_data_universal = tagged_sentences_universal[-test_size:] 
+    train_data_universal = tagged_sentences_universal[:train_size] 
 
     if hashlib.md5(''.join(map(lambda x:x[0],train_data_universal[0]+train_data_universal[-1]+test_data_universal[0]+test_data_universal[-1])).encode('utf-8')).hexdigest()!='164179b8e679e96b2d7ff7d360b75735':
         print('!!!test/train split (%s/%s) incorrect, most of your answers will be wrong hereafter!!!'%(len(train_data_universal),len(test_data_universal)),file=sys.stderr)
@@ -334,7 +343,7 @@ def answers():
            print('viterbi value (%s) must be a cost'%v_sample,file=sys.stderr)
 
     b_sample=model.get_backpointer_value('VERB',5)
-    if not (type(b_sample)=='str' and b_sample in model.steps):
+    if not (type(b_sample)==str and b_sample in model.states):
            print('backpointer value (%s) must be a state name'%b_sample,file=sys.stderr)
 
 
@@ -356,13 +365,13 @@ def answers():
     accuracy = 0.0 # fix me
     print('Tagging accuracy for test set of %s sentences: %.4f'%(test_size,accuracy))
 
-    # Print answers for 4b and 5
+    # Print answers for 4b, 5 and 6
     bad_tags, good_tags, answer4b = answer_question4b()
-    print('\nAn incorrect tagged sequence is:')
+    print('\nA tagged-by-your-model version of a sentence:')
     print(bad_tags)
-    print('The correct tagging of this sentence would be:')
+    print('The tagged version of this sentence from the corpus:')
     print(good_tags)
-    print('\nA possible reason why this error may have occurred is:')
+    print('\nDiscussion of the difference:')
     print(answer4b[:280])
     answer5=answer_question5()
     print('\nFor Q5:')
