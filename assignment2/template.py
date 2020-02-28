@@ -1,5 +1,8 @@
 import inspect, sys, hashlib
 
+# TODO: can I import this library?
+import math
+
 # Hack around a warning message deep inside scikit learn, loaded by nltk :-(
 #  Modelled on https://stackoverflow.com/a/25067818
 import warnings
@@ -79,8 +82,6 @@ class HMM:
 
     # Access function for testing the emission model
     # For example model.elprob('VERB','is') might be -1.4
-    # TODO: can I import this library?????????????????????????
-    import math
     def elprob(self,state,word):
         """
         The log of the estimated probability of emitting a word from a state
@@ -93,7 +94,7 @@ class HMM:
         :rtype: float
         """
         # raise NotImplementedError('HMM.elprob')
-        return math.log2(emission_PD[state].prob(word))
+        return math.log2(self.emission_PD[state].prob(word))
 
     # Compute transition model using ConditionalProbDist with a LidstonelprobDist estimator.
     # See comments for emission_model above for details on the estimator.
@@ -140,7 +141,7 @@ class HMM:
         :rtype: float
         """
         # raise NotImplementedError('HMM.tlprob')
-        return math.log2(transition_PD[state1].prob(state2)) # fixme
+        return math.log2(self.transition_PD[state1].prob(state2)) # fixme
 
     # Train the HMM
     def train(self):
@@ -168,6 +169,8 @@ class HMM:
         #  transition from <s> to observation
         # use costs (-log-base-2 probabilities)
         # TODO
+        # for s in range(N):
+
 
         # Initialise step 0 of backpointer
         # TODO
