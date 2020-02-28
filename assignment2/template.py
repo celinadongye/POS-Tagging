@@ -106,20 +106,23 @@ class HMM:
         :return: The transition probability distribution
         :rtype: ConditionalProbDist
         """
-        raise NotImplementedError('HMM.transition_model')
+        # raise NotImplementedError('HMM.transition_model')
         # TODO: prepare the data
-        data = [[(tag, word.lower()) for (word, tag) in sent] for sent in train_data]
+        data = []
 
         # The data object should be an array of tuples of conditions and observations,
         # in our case the tuples will be of the form (tag_(i),tag_(i+1)).
         # DON'T FORGET TO ADD THE START SYMBOL </s> and the END SYMBOL </s>
         for s in train_data:
-            pass  # TODO
+            data.append(tuple(("<s>", "<s>")))
+            # data.extend([pair for pair in s])
+            data.extend([(s[i][1],s[i+1][1]) for i in range(len(s)-1)])
+            data.append(tuple(("</s>", "</s>")))
 
         # TODO compute the transition model
-
-        transition_FD = 'fixme'
-        self.transition_PD = 'fixme'
+        transition_FD = nltk.probability.ConditionalFreqDist(data)
+        lidstone_estimator = lambda FD : nltk.probability.LidstoneProbDist(FD, 0.01, FD.B()+1)
+        self.transition_PD = nltk.probability.ConditionalProbDist(transition_FD, lidstone_estimator)
 
         return self.transition_PD
 
@@ -136,8 +139,8 @@ class HMM:
         :return: log base 2 of the estimated transition probability
         :rtype: float
         """
-        raise NotImplementedError('HMM.tlprob')
-        return ... # fixme
+        # raise NotImplementedError('HMM.tlprob')
+        return math.log2(transition_PD[state1].prob(state2)) # fixme
 
     # Train the HMM
     def train(self):
