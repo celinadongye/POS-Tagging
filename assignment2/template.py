@@ -65,18 +65,22 @@ class HMM:
 
         # Don't forget to lowercase the observation otherwise it mismatches the test data
         # Do NOT add <s> or </s> to the input sentences
-        data = [[(word.lower(),tag) for (word,tag) in sent] for sent in train_data]
+        flat_list = [pair for sent in train_data for pair in sent]
+        # data = [[(tag, word.lower()) for (word, tag) in sent] for sent in train_data]
+        data = [(tag, word.lower()) for (word, tag) in flat_list]
 
         # TODO compute the emission model
         emission_FD = nltk.probability.ConditionalFreqDist(data)
-        LidstoneProbDist = [emission_FD, ]
-        self.emission_PD = nltk.probability.ConditionalProbDist(emission_FD, LidstoneProbDist)
-        self.states = 'fixme'
+        lidstone_estimator = lambda FD : nltk.probability.LidstoneProbDist(FD, 0.01, FD.B()+1)
+        self.emission_PD = nltk.probability.ConditionalProbDist(emission_FD, lidstone_estimator)
+        self.states = [[tag for (word,tag) in sent] for sent in train_data]
 
         return self.emission_PD, self.states
 
     # Access function for testing the emission model
     # For example model.elprob('VERB','is') might be -1.4
+    # TODO: can I import this library?????????????????????????
+    import math
     def elprob(self,state,word):
         """
         The log of the estimated probability of emitting a word from a state
@@ -88,8 +92,8 @@ class HMM:
         :return: log base 2 of the estimated emission probability
         :rtype: float
         """
-        raise NotImplementedError('HMM.elprob')
-        return ... # fixme
+        # raise NotImplementedError('HMM.elprob')
+        return math.log2(emission_PD[state].prob(word))
 
     # Compute transition model using ConditionalProbDist with a LidstonelprobDist estimator.
     # See comments for emission_model above for details on the estimator.
@@ -104,7 +108,7 @@ class HMM:
         """
         raise NotImplementedError('HMM.transition_model')
         # TODO: prepare the data
-        data = []
+        data = [[(tag, word.lower()) for (word, tag) in sent] for sent in train_data]
 
         # The data object should be an array of tuples of conditions and observations,
         # in our case the tuples will be of the form (tag_(i),tag_(i+1)).
