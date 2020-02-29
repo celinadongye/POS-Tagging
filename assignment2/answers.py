@@ -1,0 +1,17 @@
+a1a=['.', 'ADJ', 'ADP', 'ADV', 'CONJ', 'DET', 'NOUN', 'NUM', 'PRON', 'PRT', 'VERB', 'X']
+a1b=2649
+a1c=12.059885650136557
+a1d='function'
+a2a=12
+a2b=2.4570699380570837
+a4a3=0.0
+a4b1=
+a4b2=
+a4b3=
+a4c=
+a4d=
+a4e=[]
+a5=
+a6=
+a3c=
+a3d=

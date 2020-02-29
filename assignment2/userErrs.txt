@@ -1,0 +1,77 @@
+The following line threw a NotImplementedError exception: HMM.initialise:
+model.initialise(s[0])
+-------
+The following line threw a NotImplementedError exception: HMM.get_viterbi_value:
+v_sample=model.get_viterbi_value('VERB',5)
+-------
+The following lines threw a NameError exception: name 'v_sample' is not defined:
+if not (type(v_sample)==float and 0.0<=v_sample):
+       print('viterbi value (%s) must be a cost'%v_sample,file=sys.stderr)
+-------
+The following line threw a NotImplementedError exception: HMM.get_backpointer_value:
+b_sample=model.get_backpointer_value('VERB',5)
+-------
+The following lines threw a NameError exception: name 'b_sample' is not defined:
+if not (type(b_sample)==str and b_sample in model.states):
+       print('backpointer value (%s) must be a state name'%b_sample,file=sys.stderr)
+-------
+The following lines threw a NotImplementedError exception: HMM.initialise:
+for sentence in test_data_universal:
+    s = [word.lower() for (word, tag) in sentence]
+    model.initialise(s[0])
+    tags = model.tag(s)
+    for ((word,gold),tag) in zip(sentence,tags):
+        if tag == gold:
+            pass
+        else:
+            pass
+-------
+The following line threw a NotImplementedError exception: answer_question4b:
+bad_tags, good_tags, answer4b = answer_question4b()
+-------
+The following line threw a NameError exception: name 'bad_tags' is not defined:
+print(bad_tags)
+-------
+The following line threw a NameError exception: name 'good_tags' is not defined:
+print(good_tags)
+-------
+The following line threw a NameError exception: name 'answer4b' is not defined:
+print(answer4b[:280])
+-------
+The following line threw a NotImplementedError exception: answer_question5:
+answer5=answer_question5()
+-------
+The following line threw a NameError exception: name 'answer5' is not defined:
+print(answer5[:500])
+-------
+The following line threw a NotImplementedError exception: answer_question6:
+answer6=answer_question6()
+-------
+The following line threw a NameError exception: name 'answer6' is not defined:
+print(answer6[:500])
+-------
+Exception in answer dict value computation:
+    bad_tags -> NameError("name 'bad_tags' is not defined",)
+  File "/Users/celinadong/Desktop/INF3/FNLP/CW2/assignment2/autodrive_embed.py", line 55, in safeEval
+    return eval(expr,gdict)
+  File "<string>", line 1, in <module>
+Exception in answer dict value computation:
+    good_tags -> NameError("name 'good_tags' is not defined",)
+  File "/Users/celinadong/Desktop/INF3/FNLP/CW2/assignment2/autodrive_embed.py", line 55, in safeEval
+    return eval(expr,gdict)
+  File "<string>", line 1, in <module>
+Exception in answer dict value computation:
+    answer4b -> NameError("name 'answer4b' is not defined",)
+  File "/Users/celinadong/Desktop/INF3/FNLP/CW2/assignment2/autodrive_embed.py", line 55, in safeEval
+    return eval(expr,gdict)
+  File "<string>", line 1, in <module>
+Exception in answer dict value computation:
+    answer5 -> NameError("name 'answer5' is not defined",)
+  File "/Users/celinadong/Desktop/INF3/FNLP/CW2/assignment2/autodrive_embed.py", line 55, in safeEval
+    return eval(expr,gdict)
+  File "<string>", line 1, in <module>
+Exception in answer dict value computation:
+    answer6 -> NameError("name 'answer6' is not defined",)
+  File "/Users/celinadong/Desktop/INF3/FNLP/CW2/assignment2/autodrive_embed.py", line 55, in safeEval
+    return eval(expr,gdict)
+  File "<string>", line 1, in <module>

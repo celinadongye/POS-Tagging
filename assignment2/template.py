@@ -76,7 +76,10 @@ class HMM:
         emission_FD = nltk.probability.ConditionalFreqDist(data)
         lidstone_estimator = lambda FD : nltk.probability.LidstoneProbDist(FD, 0.01, FD.B()+1)
         self.emission_PD = nltk.probability.ConditionalProbDist(emission_FD, lidstone_estimator)
-        self.states = [[tag for (word,tag) in sent] for sent in train_data]
+        self.states = []
+        for sent in train_data:
+            self.states.extend([tag for (word,tag) in sent])
+        self.states = set(self.states)
 
         return self.emission_PD, self.states
 
@@ -169,7 +172,10 @@ class HMM:
         #  transition from <s> to observation
         # use costs (-log-base-2 probabilities)
         # TODO
+        # viterbi = []
+        # backpointer = []
         # for s in range(N):
+        #     viterbi[]
 
 
         # Initialise step 0 of backpointer
