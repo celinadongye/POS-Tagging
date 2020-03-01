@@ -1,7 +1,9 @@
 import inspect, sys, hashlib
 
-# TODO: can I import this library?
+# TODO: can I import these libraries?
 import math
+import numpy as np
+import pandas as pd
 
 # Hack around a warning message deep inside scikit learn, loaded by nltk :-(
 #  Modelled on https://stackoverflow.com/a/25067818
@@ -126,6 +128,7 @@ class HMM:
         transition_FD = nltk.probability.ConditionalFreqDist(data)
         lidstone_estimator = lambda FD : nltk.probability.LidstoneProbDist(FD, 0.01, FD.B()+1)
         self.transition_PD = nltk.probability.ConditionalProbDist(transition_FD, lidstone_estimator)
+        
 
     # Access function for testing the transition model
     # For example model.tlprob('VERB','VERB') might be -2.4
@@ -141,7 +144,7 @@ class HMM:
         :rtype: float
         """
         # raise NotImplementedError('HMM.tlprob')
-        print(math.log2(self.transition_PD['VERB'].prob('VERB')))
+        # print(math.log2(self.transition_PD['VERB'].prob('VERB')))
         return math.log2(self.transition_PD[state1].prob(state2)) # fixme
 
     # Train the HMM
@@ -165,19 +168,50 @@ class HMM:
         :param observation: the first word in the sentence to tag
         :type observation: str
         """
-        raise NotImplementedError('HMM.initialise')
+        # raise NotImplementedError('HMM.initialise')
         # Initialise step 0 of viterbi, including
         #  transition from <s> to observation
         # use costs (-log-base-2 probabilities)
         # TODO
-        # viterbi = []
-        # backpointer = []
-        # for s in range(N):
-        #     viterbi[]
 
+        ### DESCRIBE THE DATA STRUCTURES WITH COMMENTS
 
+        # Initialize the two data structures
+        ## numpy or pandas or dict??
+        # pandas can add the word itself to each row/column and access it that way
+        # need indices for numpy (fixed in size, need to concatenate)
+        # dict is dynamic, grows by simply indexing
+
+        self.viterbi = np.empty((10, 10))
+        index = self.states # states (tags)
+        columns = ['<s>', observation] # observations (words)
+        self.viterbi = pd.DataFrame(index=self.states, columns=['<s>', observation]) # With each observation, add new column (observation) and insert values OR create a list with the values and insert it to df
+        
+        # Tuples as values in each cell
+        self.backpointer = pd.DataFrame(index=self.states, columns=[observation])
+
+        # Use a dictionary to store the prob of corresponding tag (initialized to -1 for each observation), given that the number of states remains constant,
+        # we don't need a dynamic data structure
+        # self.state_prob = {tag:-1 for tag in self.states} #dict((tag, -1) for tag in self.states)
+        # OR maybe just have one variable for prob and one for tag, and replace if we find a smaller prob
+        # Compute negative log probability with each tag
+        min_cost = 2 # Maximum probability is 1
+        best_tag = '' # DONT NEED THIS UNTIL THE END OF TAGGING?
+        for tag in self.states:
+            # state_prob[tag] = tlprob(self, '<s>', tag) *  elprob(self, tag, observation)
+            # tmp_cost = self.emission_model.tlprob(self, '<s>', tag) *  self.transition_model.elprob(self, tag, observation)
+            tmp_cost = math.log2(self.transition_PD['<s>'].prob(tag)) * math.log2(self.emission_PD['<s>'].prob(observation))
+            self.viterbi.loc[tag][observation] = tmp_cost
+            if (tmp_cost < min_cost):
+                min_cost = tmp_cost
+                best_tag = tag
+        
+        # Select minimum cost tag
+        # self.viterbi.loc[best_tag][observation] = min_cost
+        
         # Initialise step 0 of backpointer
         # TODO
+        self.backpointer.loc[tag][observation] = 0 # First word of the sentence does not have backpointers
 
     # Tag a new sentence using the trained model and already initialised data structures.
     # Use the models stored in the variables: self.emission_PD and self.transition_PD.
@@ -349,7 +383,7 @@ def answers():
     ######
     s='the cat in the hat came back'.split()
     model.initialise(s[0])
-    ttags = [] # fixme, call model's tag method
+    ttags = [] #model.tag(s) # fixme
     print("Tagged a trial sentence:\n  %s"%list(zip(s,ttags)))
 
     v_sample=model.get_viterbi_value('VERB',5)
