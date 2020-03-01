@@ -1,3 +1,13 @@
+The following line threw a NameError exception: name 'itertools' is not defined:
+model.train()
+-------
+The following line threw a TypeError exception: 'NoneType' object is not subscriptable:
+t_sample=model.tlprob('VERB','VERB')
+-------
+The following lines threw a NameError exception: name 't_sample' is not defined:
+if not (type(t_sample)==float and t_sample<=0.0):
+       print('tlprob value (%s) must be a log probability'%t_sample,file=sys.stderr)
+-------
 The following line threw a NotImplementedError exception: HMM.initialise:
 model.initialise(s[0])
 -------
@@ -50,6 +60,13 @@ answer6=answer_question6()
 The following line threw a NameError exception: name 'answer6' is not defined:
 print(answer6[:500])
 -------
+Exception in answer dict value computation:
+    -model.tlprob("VERB","DET") -> TypeError("'NoneType' object is not subscriptable",)
+  File "/Users/celinadong/Desktop/INF3/FNLP/CW2/assignment2/autodrive_embed.py", line 55, in safeEval
+    return eval(expr,gdict)
+  File "<string>", line 1, in <module>
+  File "template.py", line 147, in tlprob
+    print(math.log2(self.transition_PD['VERB'].prob('VERB')))
 Exception in answer dict value computation:
     bad_tags -> NameError("name 'bad_tags' is not defined",)
   File "/Users/celinadong/Desktop/INF3/FNLP/CW2/assignment2/autodrive_embed.py", line 55, in safeEval

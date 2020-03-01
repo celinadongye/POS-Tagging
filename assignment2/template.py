@@ -96,7 +96,6 @@ class HMM:
         :return: log base 2 of the estimated emission probability
         :rtype: float
         """
-        # raise NotImplementedError('HMM.elprob')
         return math.log2(self.emission_PD[state].prob(word))
 
     # Compute transition model using ConditionalProbDist with a LidstonelprobDist estimator.
@@ -116,19 +115,17 @@ class HMM:
 
         # The data object should be an array of tuples of conditions and observations,
         # in our case the tuples will be of the form (tag_(i),tag_(i+1)).
-        # DON'T FORGET TO ADD THE START SYMBOL </s> and the END SYMBOL </s>
+        # DON'T FORGET TO ADD THE START SYMBOL </s> and the END SYMB OL </s>
         for s in train_data:
             data.append(tuple(("<s>", "<s>")))
             # data.extend([pair for pair in s])
-            data.extend([(s[i][1],s[i+1][1]) for i in range(len(s)-1)])
+            data.extend([(s[i][1], s[i+1][1]) for i in range(len(s)-1)])
             data.append(tuple(("</s>", "</s>")))
 
         # TODO compute the transition model
         transition_FD = nltk.probability.ConditionalFreqDist(data)
         lidstone_estimator = lambda FD : nltk.probability.LidstoneProbDist(FD, 0.01, FD.B()+1)
         self.transition_PD = nltk.probability.ConditionalProbDist(transition_FD, lidstone_estimator)
-
-        return self.transition_PD
 
     # Access function for testing the transition model
     # For example model.tlprob('VERB','VERB') might be -2.4
@@ -144,6 +141,7 @@ class HMM:
         :rtype: float
         """
         # raise NotImplementedError('HMM.tlprob')
+        print(math.log2(self.transition_PD['VERB'].prob('VERB')))
         return math.log2(self.transition_PD[state1].prob(state2)) # fixme
 
     # Train the HMM
@@ -351,7 +349,7 @@ def answers():
     ######
     s='the cat in the hat came back'.split()
     model.initialise(s[0])
-    ttags = [] # fixme
+    ttags = [] # fixme, call model's tag method
     print("Tagged a trial sentence:\n  %s"%list(zip(s,ttags)))
 
     v_sample=model.get_viterbi_value('VERB',5)
