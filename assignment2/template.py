@@ -187,31 +187,32 @@ class HMM:
         columns = ['<s>', observation] # observations (words)
         self.viterbi = pd.DataFrame(index=self.states, columns=['<s>', observation]) # With each observation, add new column (observation) and insert values OR create a list with the values and insert it to df
         
-        # Tuples as values in each cell
-        self.backpointer = pd.DataFrame(index=self.states, columns=[observation])
+        # Store the state we came from
+        # self.backpointer = {word:-1 for word in observation}
+        self.backpointer = []
+        self.backpointer.append(['<s>', 0])
 
         # Use a dictionary to store the prob of corresponding tag (initialized to -1 for each observation), given that the number of states remains constant,
         # we don't need a dynamic data structure
         # self.state_prob = {tag:-1 for tag in self.states} #dict((tag, -1) for tag in self.states)
         # OR maybe just have one variable for prob and one for tag, and replace if we find a smaller prob
         # Compute negative log probability with each tag
-        min_cost = 2 # Maximum probability is 1
-        best_tag = '' # DONT NEED THIS UNTIL THE END OF TAGGING?
+        min_cost = 1.1 # Maximum probability is 1
+        best_tag = ''
         for tag in self.states:
             # state_prob[tag] = tlprob(self, '<s>', tag) *  elprob(self, tag, observation)
-            # tmp_cost = self.emission_model.tlprob(self, '<s>', tag) *  self.transition_model.elprob(self, tag, observation)
-            tmp_cost = math.log2(self.transition_PD['<s>'].prob(tag)) * math.log2(self.emission_PD['<s>'].prob(observation))
-            self.viterbi.loc[tag][observation] = tmp_cost
-            if (tmp_cost < min_cost):
-                min_cost = tmp_cost
+            # neg log probabilites (min over sum of costs rather than max over product)
+            cost = -math.log2(self.transition_PD['<s>'].prob(tag) * self.emission_PD['<s>'].prob(observation))
+            print("cost of tag " + tag + ":" + str(cost))
+            self.viterbi.loc[tag][observation] = cost
+            if (cost < min_cost):
+                min_cost = cost
                 best_tag = tag
-        
-        # Select minimum cost tag
-        # self.viterbi.loc[best_tag][observation] = min_cost
-        
+
         # Initialise step 0 of backpointer
-        # TODO
-        self.backpointer.loc[tag][observation] = 0 # First word of the sentence does not have backpointers
+        # First word of the sentence does not have backpointers
+        self.backpointer.append([observation, best_tag])
+
 
     # Tag a new sentence using the trained model and already initialised data structures.
     # Use the models stored in the variables: self.emission_PD and self.transition_PD.
@@ -228,19 +229,28 @@ class HMM:
         raise NotImplementedError('HMM.tag')
         tags = []
 
-        for t in ...: # fixme to iterate over steps
-            for s in ...: # fixme to iterate over states
-                pass # fixme to update the viterbi and backpointer data structures
+        # for t in ...: # fixme to iterate over steps
+        #     for s in ...: # fixme to iterate over states
+        #         pass # fixme to update the viterbi and backpointer data structures
+        #         #  Use costs, not probabilities
+
+        max_viterbi = 0.0
+        for t in range(2, len(observations)): 
+            for s in len(self.states):
+                self.viterbi.loc[s, t] = self.viterbi.loc[s, t-1] - (math.log2(self.transition_PD['<s>'].prob(s)) + math.log2(self.emission_PD['<s>'].prob(t)))
+                #self.backpointer
                 #  Use costs, not probabilities
 
         # TODO
         # Add a termination step with cost based solely on cost of transition to </s> , end of sentence.
+        bestpathprob = self.viterbi['</s>'].min()
+        bestpathpointer = self.viterbi['</s>'].idxmin()
 
         # TODO
         # Reconstruct the tag sequence using the backpointer list.
         # Return the tag sequence corresponding to the best path as a list.
         # The order should match that of the words in the sentence.
-        tags = ... # fixme
+        tags = [t for (w, t) in self.backpointer] # fixme
 
         return tags
 
@@ -259,8 +269,9 @@ class HMM:
         :return: The value (a cost) for state as of step
         :rtype: float
         """
-        raise NotImplementedError('HMM.get_viterbi_value')
-        return ... # fix me
+        # raise NotImplementedError('HMM.get_viterbi_value')
+        print(self.viterbi)
+        return (self.viterbi.loc[state][step])
 
     # Access function for testing the backpointer data structure
     # For example model.get_backpointer_value('VERB',2) might be 'NOUN'
@@ -277,8 +288,8 @@ class HMM:
         :return: The state name to go back to at step-1
         :rtype: str
         """
-        raise NotImplementedError('HMM.get_backpointer_value')
-        return ... # fix me
+        # raise NotImplementedError('HMM.get_backpointer_value')
+        return (self.backpointer[step][1])
 
 def answer_question4b():
     """
@@ -383,7 +394,7 @@ def answers():
     ######
     s='the cat in the hat came back'.split()
     model.initialise(s[0])
-    ttags = [] #model.tag(s) # fixme
+    ttags = model.tag(s) # fixme
     print("Tagged a trial sentence:\n  %s"%list(zip(s,ttags)))
 
     v_sample=model.get_viterbi_value('VERB',5)
