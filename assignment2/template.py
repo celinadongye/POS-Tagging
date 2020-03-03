@@ -65,29 +65,31 @@ class HMM:
         :return: The emission probability distribution and a list of the states
         :rtype: Tuple[ConditionalProbDist, list(str)]
         """
-        # raise NotImplementedError('HMM.emission_model')
-        # TODO prepare data
 
+        # TODO prepare data
         # Don't forget to lowercase the observation otherwise it mismatches the test data
         # Do NOT add <s> or </s> to the input sentences
-        flat_list = [pair for sent in train_data for pair in sent]
-        # data = [[(tag, word.lower()) for (word, tag) in sent] for sent in train_data]
-        data = [(tag, word.lower()) for (word, tag) in flat_list]
+        # flat_list = [pair for sent in train_data for pair in sent]
+        # data = [(tag, word.lower()) for (word, tag) in flat_list]
+        data = []
+        for sent in train_data:
+            data.extend([(tag, word.lower()) for (word, tag) in sent])
 
         # TODO compute the emission model
         emission_FD = nltk.probability.ConditionalFreqDist(data)
-        lidstone_estimator = lambda FD : nltk.probability.LidstoneProbDist(FD, 0.01, FD.B()+1)
+        lidstone_estimator = lambda fd : nltk.probability.LidstoneProbDist(fd, 0.01, fd.B()+1)
         self.emission_PD = nltk.probability.ConditionalProbDist(emission_FD, lidstone_estimator)
+
         self.states = []
         for sent in train_data:
-            self.states.extend([tag for (word,tag) in sent])
+            self.states.extend([tag for (word, tag) in sent])
         self.states = set(self.states)
 
         return self.emission_PD, self.states
 
     # Access function for testing the emission model
     # For example model.elprob('VERB','is') might be -1.4
-    def elprob(self,state,word):
+    def elprob(self, state, word):
         """
         The log of the estimated probability of emitting a word from a state
 
@@ -120,8 +122,9 @@ class HMM:
         # DON'T FORGET TO ADD THE START SYMBOL </s> and the END SYMB OL </s>
         for s in train_data:
             data.append(tuple(("<s>", "<s>")))
-            # data.extend([pair for pair in s])
+            data.append(tuple(("<s>", s[0][1])))
             data.extend([(s[i][1], s[i+1][1]) for i in range(len(s)-1)])
+            data.append(tuple((s[-1][1], "</s>")))
             data.append(tuple(("</s>", "</s>")))
 
         # TODO compute the transition model
@@ -132,7 +135,7 @@ class HMM:
 
     # Access function for testing the transition model
     # For example model.tlprob('VERB','VERB') might be -2.4
-    def tlprob(self,state1,state2):
+    def tlprob(self, state1, state2):
         """
         The log of the estimated probability of a transition from one state to another
 
@@ -143,8 +146,7 @@ class HMM:
         :return: log base 2 of the estimated transition probability
         :rtype: float
         """
-        # raise NotImplementedError('HMM.tlprob')
-        # print(math.log2(self.transition_PD['VERB'].prob('VERB')))
+
         return math.log2(self.transition_PD[state1].prob(state2)) # fixme
 
     # Train the HMM
@@ -269,8 +271,8 @@ class HMM:
         :return: The value (a cost) for state as of step
         :rtype: float
         """
-        # raise NotImplementedError('HMM.get_viterbi_value')
-        print(self.viterbi)
+        raise NotImplementedError('HMM.get_viterbi_value')
+        #print(self.viterbi)
         return (self.viterbi.loc[state][step])
 
     # Access function for testing the backpointer data structure
@@ -394,7 +396,7 @@ def answers():
     ######
     s='the cat in the hat came back'.split()
     model.initialise(s[0])
-    ttags = model.tag(s) # fixme
+    ttags = []#model.tag(s) # fixme
     print("Tagged a trial sentence:\n  %s"%list(zip(s,ttags)))
 
     v_sample=model.get_viterbi_value('VERB',5)

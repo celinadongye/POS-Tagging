@@ -5,7 +5,7 @@ The following lines threw a NameError exception: name 'v_sample' is not defined:
 if not (type(v_sample)==float and 0.0<=v_sample):
        print('viterbi value (%s) must be a cost'%v_sample,file=sys.stderr)
 -------
-The following line threw a NotImplementedError exception: HMM.get_backpointer_value:
+The following line threw a IndexError exception: list index out of range:
 b_sample=model.get_backpointer_value('VERB',5)
 -------
 The following lines threw a NameError exception: name 'b_sample' is not defined:
