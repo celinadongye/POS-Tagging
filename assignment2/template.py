@@ -129,7 +129,7 @@ class HMM:
 
         # TODO compute the transition model
         transition_FD = nltk.probability.ConditionalFreqDist(data)
-        lidstone_estimator = lambda FD : nltk.probability.LidstoneProbDist(FD, 0.01, FD.B()+1)
+        lidstone_estimator = lambda fd : nltk.probability.LidstoneProbDist(fd, 0.01, fd.B()+1)
         self.transition_PD = nltk.probability.ConditionalProbDist(transition_FD, lidstone_estimator)
         
 
@@ -147,7 +147,7 @@ class HMM:
         :rtype: float
         """
 
-        return math.log2(self.transition_PD[state1].prob(state2)) # fixme
+        return math.log2(self.transition_PD[state1].prob(state2))
 
     # Train the HMM
     def train(self):
@@ -184,36 +184,38 @@ class HMM:
         # need indices for numpy (fixed in size, need to concatenate)
         # dict is dynamic, grows by simply indexing
 
-        self.viterbi = np.empty((10, 10))
-        index = self.states # states (tags)
-        columns = ['<s>', observation] # observations (words)
-        self.viterbi = pd.DataFrame(index=self.states, columns=['<s>', observation]) # With each observation, add new column (observation) and insert values OR create a list with the values and insert it to df
-        
+        # index = self.states # states (tags)
+        # columns = ['<s>', observation] # observations (words)
+        # self.viterbi = pd.DataFrame(index=self.states, columns=['<s>', observation]) # With each observation, add new column (observation) and insert values OR create a list with the values and insert it to df
+        self.viterbi = pd.DataFrame(index=self.states, columns=[observation])
+        #TODO: indexes as column names and states, or actual strings????
+
         # Store the state we came from
-        # self.backpointer = {word:-1 for word in observation}
         self.backpointer = []
-        self.backpointer.append(['<s>', 0])
+        # self.backpointer.append(['<s>', 0])
+        self.backpointer.append([observation, 0])
 
         # Use a dictionary to store the prob of corresponding tag (initialized to -1 for each observation), given that the number of states remains constant,
         # we don't need a dynamic data structure
         # self.state_prob = {tag:-1 for tag in self.states} #dict((tag, -1) for tag in self.states)
         # OR maybe just have one variable for prob and one for tag, and replace if we find a smaller prob
         # Compute negative log probability with each tag
-        min_cost = 1.1 # Maximum probability is 1
-        best_tag = ''
+        # min_cost = 1.1 # Maximum probability is 1
+        # best_tag = ''
         for tag in self.states:
             # state_prob[tag] = tlprob(self, '<s>', tag) *  elprob(self, tag, observation)
             # neg log probabilites (min over sum of costs rather than max over product)
-            cost = -math.log2(self.transition_PD['<s>'].prob(tag) * self.emission_PD['<s>'].prob(observation))
-            print("cost of tag " + tag + ":" + str(cost))
+            cost = - math.log2(self.transition_PD['<s>'].prob(tag)) - math.log2(self.emission_PD['<s>'].prob(observation))
+            # print("cost of tag " + tag + ":" + str(cost))
             self.viterbi.loc[tag][observation] = cost
-            if (cost < min_cost):
-                min_cost = cost
-                best_tag = tag
+            # self.viterbi.loc[tag][0] = cost
+            # if (cost < min_cost):
+            #     min_cost = cost
+            #     best_tag = tag
 
         # Initialise step 0 of backpointer
         # First word of the sentence does not have backpointers
-        self.backpointer.append([observation, best_tag])
+        # self.backpointer.append([observation, best_tag])
 
 
     # Tag a new sentence using the trained model and already initialised data structures.
@@ -236,17 +238,32 @@ class HMM:
         #         pass # fixme to update the viterbi and backpointer data structures
         #         #  Use costs, not probabilities
 
-        max_viterbi = 0.0
-        for t in range(2, len(observations)): 
-            for s in len(self.states):
-                self.viterbi.loc[s, t] = self.viterbi.loc[s, t-1] - (math.log2(self.transition_PD['<s>'].prob(s)) + math.log2(self.emission_PD['<s>'].prob(t)))
-                #self.backpointer
-                #  Use costs, not probabilities
+        min_viterbi = float("inf")
+        best_tag = ''
+        # for t in observations[1:]: 
+        for t in range(1, len(observations)):
+            self.viterbi[observations[t]] = 0.0
+            for s in self.states:
+                # viterbi_tmp = self.viterbi.loc[s][t-1] -(math.log2(self.transition_PD[t-1].prob(s))) - (math.log2(self.emission_PD[t-1].prob(t)))
+                viterbi_tmp = self.viterbi.loc[s][t-1] #- math.log2(self.transition_PD['<s>'].prob(s)) - math.log2(self.emission_PD['<s>'].prob(observations[t]))
+                if (viterbi_tmp < min_viterbi):
+                    min_viterbi = min_viterbi
+                    best_tag = s
+            self.viterbi.loc[s, observations[t]] = min_viterbi
+            self.backpointer.append([s, best_tag])
 
         # TODO
         # Add a termination step with cost based solely on cost of transition to </s> , end of sentence.
-        bestpathprob = self.viterbi['</s>'].min()
-        bestpathpointer = self.viterbi['</s>'].idxmin()
+        bestpathprob = float("inf")
+        bestpathpointer = ''
+        for s in self.states:
+            viterbi_tmp = self.viterbi.loc[s][-1] - math.log2(self.transition_PD[observations[-1]].prob('</s>')) #- math.log2(self.emission_PD[observations[-1]].prob(t))
+            if (viterbi_tmp < bestpathprob):
+                bestpathprob = viterbi_tmp
+                bestpathpointer = s
+        
+        # bestpathprob = self.viterbi['</s>'].min()
+        # bestpathpointer = self.viterbi['</s>'].idxmin()
 
         # TODO
         # Reconstruct the tag sequence using the backpointer list.
@@ -271,8 +288,7 @@ class HMM:
         :return: The value (a cost) for state as of step
         :rtype: float
         """
-        raise NotImplementedError('HMM.get_viterbi_value')
-        #print(self.viterbi)
+        # raise NotImplementedError('HMM.get_viterbi_value')
         return (self.viterbi.loc[state][step])
 
     # Access function for testing the backpointer data structure
