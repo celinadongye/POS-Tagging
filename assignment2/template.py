@@ -84,7 +84,8 @@ class HMM:
         self.states = []
         for sent in train_data:
             self.states.extend([tag for (word, tag) in sent])
-        self.states = (list(set(self.states))).sort()
+        self.states = (list(set(self.states)))
+        self.states.sort()
 
         return self.emission_PD, self.states
 
@@ -192,12 +193,12 @@ class HMM:
             cost = - self.tlprob('<s>', tag) - self.elprob(tag, observation)
             self.viterbi.loc[tag][observation] = cost
 
+        # Backointer: need iterating through it, and dfs are not suitable for that
         # Initialise step 0 of backpointer
         # First word of the sentence does not have backpointers
         # Store the state we came from
-        self.backpointer = [[0]] * len(self.states)
-        # self.backpointer.append([0])
-        # self.backpointer = pd.DataFrame(index=self.states, columns=[observation])
+        # List of lists (tags, and words for each tag). Inner list is the length of the sentence                                                                                                                                                                                               
+        self.backpointer = [[0] for s in self.states]
         # self.backpointer[observation] = 0.0
 
     # Tag a new sentence using the trained model and already initialised data structures.
@@ -214,7 +215,6 @@ class HMM:
         """
         # raise NotImplementedError('HMM.tag')
         tags = []
-
         # for t in ...: # fixme to iterate over steps
         #     for s in ...: # fixme to iterate over states
         #         pass # fixme to update the viterbi and backpointer data structures
@@ -228,18 +228,16 @@ class HMM:
                 best_tag = ''
                 # self.viterbi.loc[s, observations[t]] = min([self.viterbi.loc[s_prev][observations[t-1]] - self.tlprob(s_prev, s) - self.elprob(s, observations[t]) for s_prev in self.states])
                 for s_prev in self.states:
-                    # print(s + ", prev " + s_prev)
                     viterbi_tmp = self.viterbi.loc[s_prev][observations[t-1]] - self.tlprob(s_prev, s) - self.elprob(s, observations[t])
                     if (viterbi_tmp < min_viterbi):
                         min_viterbi = viterbi_tmp
                         best_tag = s_prev
                 self.viterbi.loc[s, observations[t]] = min_viterbi
-                self.backpointer.append([best_tag])
+                self.backpointer[self.states.index(s)].append(best_tag)
                 # self.backpointer[observations[t]] = best_tag
 
         # TODO
         # Add a termination step with cost based solely on cost of transition to </s> , end of sentence.
-        print("compute termination")
         bestpathprob = sys.float_info.max
         bestpathpointer = ''
         for s in self.states:
@@ -249,16 +247,29 @@ class HMM:
                 bestpathpointer = s
         # self.backpointer.append(['</s>', bestpathpointer])
         # self.backpointer['</s>'] = bestpathpointer
-    
 
-        # TODO
+        # print("viterbi")
+        # print(self.viterbi)
+        # print(bestpathpointer)
+        # print("backpointers")
+        # print(self.backpointer)
+        # print("generating best tag sequence")
+
+        # TODO : fix
         # Reconstruct the tag sequence using the backpointer list.
         # Return the tag sequence corresponding to the best path as a list.
-        # The order should match that of the words in the sentence.
-        # tags = [t for (w, t) in self.backpointer] # fixme
-        for t in reversed(self.backpointer):
-            tags.append(t)
+        # The order should match that of the words in the sentence
+        tag_index = self.states.index(bestpathpointer)
+        # Reverse the order of the words in the list
+        reversed_sentence = [list(reversed(tag)) for tag in self.backpointer]
+        # print(reversed_sentence)
+        # Loop through each word in the sentence (reverse order)
+        for word_index in range(len(observations)-1):
+            tags.append(self.states[tag_index])
+            tag_index = self.states.index(reversed_sentence[tag_index][word_index])
+        # Reverse the tags to obtain the original ordering
         tags.reverse()
+        # print(tags)
 
         return tags
 
@@ -278,7 +289,7 @@ class HMM:
         :rtype: float
         """
         # raise NotImplementedError('HMM.get_viterbi_value')
-        return self.viterbi.loc[state][step]
+        return float(self.viterbi.loc[state][step])
 
     # Access function for testing the backpointer data structure
     # For example model.get_backpointer_value('VERB',2) might be 'NOUN'
@@ -297,7 +308,7 @@ class HMM:
         """
         # raise NotImplementedError('HMM.get_backpointer_value')
         # return self.backpointer[step][1]
-        return (self.backpointer[state][step])
+        return (self.backpointer[self.states.index(state)][step])
 
 def answer_question4b():
     """
@@ -430,8 +441,9 @@ def answers():
             else:
                 incorrect +=1
                 # pass # fix me
-
-    accuracy = correct / test_size #0.0 # fix me
+    print(correct)
+    print(incorrect)
+    accuracy = correct / (incorrect + correct) * 100 #0.0 # fix me
     print('Tagging accuracy for test set of %s sentences: %.4f'%(test_size,accuracy))
 
     # Print answers for 4b, 5 and 6
