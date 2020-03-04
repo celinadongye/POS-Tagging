@@ -84,7 +84,7 @@ class HMM:
         self.states = []
         for sent in train_data:
             self.states.extend([tag for (word, tag) in sent])
-        self.states = list(set(self.states))
+        self.states = (list(set(self.states))).sort()
 
         return self.emission_PD, self.states
 
@@ -122,11 +122,9 @@ class HMM:
         # in our case the tuples will be of the form (tag_(i),tag_(i+1)).
         # DON'T FORGET TO ADD THE START SYMBOL </s> and the END SYMB OL </s>
         for s in train_data:
-            # data.append(tuple(("<s>", "<s>")))
             data.append(tuple(("<s>", s[0][1])))
             data.extend([(s[i][1], s[i+1][1]) for i in range(len(s)-1)])
             data.append(tuple((s[-1][1], "</s>")))
-            # data.append(tuple(("</s>", "</s>")))
 
         # TODO compute the transition model
         transition_FD = nltk.probability.ConditionalFreqDist(data)
@@ -197,9 +195,10 @@ class HMM:
         # Initialise step 0 of backpointer
         # First word of the sentence does not have backpointers
         # Store the state we came from
-        self.backpointer = []
-        self.backpointer.append([observation, 0])
-
+        self.backpointer = [[0]] * len(self.states)
+        # self.backpointer.append([0])
+        # self.backpointer = pd.DataFrame(index=self.states, columns=[observation])
+        # self.backpointer[observation] = 0.0
 
     # Tag a new sentence using the trained model and already initialised data structures.
     # Use the models stored in the variables: self.emission_PD and self.transition_PD.
@@ -221,40 +220,45 @@ class HMM:
         #         pass # fixme to update the viterbi and backpointer data structures
         #         #  Use costs, not probabilities
 
-        min_viterbi = float("inf")
-        best_tag = ''
+        
         for t in range(1, len(observations)):
             self.viterbi[observations[t]] = 0.0
             for s in self.states:
+                min_viterbi = float("inf")
+                best_tag = ''
+                # self.viterbi.loc[s, observations[t]] = min([self.viterbi.loc[s_prev][observations[t-1]] - self.tlprob(s_prev, s) - self.elprob(s, observations[t]) for s_prev in self.states])
                 for s_prev in self.states:
-                    print("Compute viterbi")
+                    # print(s + ", prev " + s_prev)
                     viterbi_tmp = self.viterbi.loc[s_prev][observations[t-1]] - self.tlprob(s_prev, s) - self.elprob(s, observations[t])
                     if (viterbi_tmp < min_viterbi):
                         min_viterbi = viterbi_tmp
                         best_tag = s_prev
                 self.viterbi.loc[s, observations[t]] = min_viterbi
-            print("out")
-            self.backpointer.append([observations[t], best_tag])
+                self.backpointer.append([best_tag])
+                # self.backpointer[observations[t]] = best_tag
 
         # TODO
         # Add a termination step with cost based solely on cost of transition to </s> , end of sentence.
+        print("compute termination")
         bestpathprob = sys.float_info.max
         bestpathpointer = ''
         for s in self.states:
-            print("compute backpointer")
             viterbi_tmp = self.viterbi.loc[s][-1] - self.tlprob(s, '</s>')
             if (viterbi_tmp < bestpathprob):
                 bestpathprob = viterbi_tmp
                 bestpathpointer = s
-        
-        # bestpathprob = self.viterbi['</s>'].min()
-        # bestpathpointer = self.viterbi['</s>'].idxmin()
+        # self.backpointer.append(['</s>', bestpathpointer])
+        # self.backpointer['</s>'] = bestpathpointer
+    
 
         # TODO
         # Reconstruct the tag sequence using the backpointer list.
         # Return the tag sequence corresponding to the best path as a list.
         # The order should match that of the words in the sentence.
-        tags = [t for (w, t) in self.backpointer] # fixme
+        # tags = [t for (w, t) in self.backpointer] # fixme
+        for t in reversed(self.backpointer):
+            tags.append(t)
+        tags.reverse()
 
         return tags
 
@@ -292,7 +296,8 @@ class HMM:
         :rtype: str
         """
         # raise NotImplementedError('HMM.get_backpointer_value')
-        return self.backpointer[step][1]
+        # return self.backpointer[step][1]
+        return (self.backpointer[state][step])
 
 def answer_question4b():
     """
