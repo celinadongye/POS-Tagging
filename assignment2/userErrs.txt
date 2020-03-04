@@ -1,28 +1,3 @@
-The following line threw a NotImplementedError exception: HMM.get_viterbi_value:
-v_sample=model.get_viterbi_value('VERB',5)
--------
-The following lines threw a NameError exception: name 'v_sample' is not defined:
-if not (type(v_sample)==float and 0.0<=v_sample):
-       print('viterbi value (%s) must be a cost'%v_sample,file=sys.stderr)
--------
-The following line threw a IndexError exception: list index out of range:
-b_sample=model.get_backpointer_value('VERB',5)
--------
-The following lines threw a NameError exception: name 'b_sample' is not defined:
-if not (type(b_sample)==str and b_sample in model.states):
-       print('backpointer value (%s) must be a state name'%b_sample,file=sys.stderr)
--------
-The following lines threw a NotImplementedError exception: HMM.tag:
-for sentence in test_data_universal:
-    s = [word.lower() for (word, tag) in sentence]
-    model.initialise(s[0])
-    tags = model.tag(s)
-    for ((word,gold),tag) in zip(sentence,tags):
-        if tag == gold:
-            pass
-        else:
-            pass
--------
 The following line threw a NotImplementedError exception: answer_question4b:
 bad_tags, good_tags, answer4b = answer_question4b()
 -------

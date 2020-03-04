@@ -2,8 +2,9 @@ import inspect, sys, hashlib
 
 # TODO: can I import these libraries?
 import math
-import numpy as np
+# import numpy as np
 import pandas as pd
+import sys
 
 # Hack around a warning message deep inside scikit learn, loaded by nltk :-(
 #  Modelled on https://stackoverflow.com/a/25067818
@@ -83,7 +84,7 @@ class HMM:
         self.states = []
         for sent in train_data:
             self.states.extend([tag for (word, tag) in sent])
-        self.states = set(self.states)
+        self.states = list(set(self.states))
 
         return self.emission_PD, self.states
 
@@ -184,38 +185,24 @@ class HMM:
         # need indices for numpy (fixed in size, need to concatenate)
         # dict is dynamic, grows by simply indexing
 
+        #TODO: indexes as column names and states, or actual strings????
         # index = self.states # states (tags)
         # columns = ['<s>', observation] # observations (words)
-        # self.viterbi = pd.DataFrame(index=self.states, columns=['<s>', observation]) # With each observation, add new column (observation) and insert values OR create a list with the values and insert it to df
+        # self.viterbi = pd.DataFrame(index=self.states, columns=['<s>', observation]) # With each observation, add new column (observation)
         self.viterbi = pd.DataFrame(index=self.states, columns=[observation])
-        #TODO: indexes as column names and states, or actual strings????
 
-        # Store the state we came from
-        self.backpointer = []
-        # self.backpointer.append(['<s>', 0])
-        self.backpointer.append([observation, 0])
-
-        # Use a dictionary to store the prob of corresponding tag (initialized to -1 for each observation), given that the number of states remains constant,
-        # we don't need a dynamic data structure
-        # self.state_prob = {tag:-1 for tag in self.states} #dict((tag, -1) for tag in self.states)
-        # OR maybe just have one variable for prob and one for tag, and replace if we find a smaller prob
         # Compute negative log probability with each tag
-        # min_cost = 1.1 # Maximum probability is 1
-        # best_tag = ''
         for tag in self.states:
-            # state_prob[tag] = tlprob(self, '<s>', tag) *  elprob(self, tag, observation)
-            # neg log probabilites (min over sum of costs rather than max over product)
-            cost = - math.log2(self.transition_PD['<s>'].prob(tag)) - math.log2(self.emission_PD['<s>'].prob(observation))
-            # print("cost of tag " + tag + ":" + str(cost))
+            cost = - math.log2(self.transition_PD['<s>'].prob(tag) * self.emission_PD['<s>'].prob(observation))
+            # cost = - (math.log2(self.transition_PD['<s>'].prob(tag))) - math.log2(self.emission_PD['<s>'].prob(observation)) # SAME VALUE
+            # print("cost of tag sum " + tag + ":" + str(cost))
             self.viterbi.loc[tag][observation] = cost
-            # self.viterbi.loc[tag][0] = cost
-            # if (cost < min_cost):
-            #     min_cost = cost
-            #     best_tag = tag
 
         # Initialise step 0 of backpointer
         # First word of the sentence does not have backpointers
-        # self.backpointer.append([observation, best_tag])
+        # Store the state we came from
+        self.backpointer = []
+        self.backpointer.append([observation, 0])
 
 
     # Tag a new sentence using the trained model and already initialised data structures.
@@ -230,7 +217,7 @@ class HMM:
         :type observations: list(str)
         :return: List of tags corresponding to each word of the input
         """
-        raise NotImplementedError('HMM.tag')
+        # raise NotImplementedError('HMM.tag')
         tags = []
 
         # for t in ...: # fixme to iterate over steps
@@ -238,23 +225,25 @@ class HMM:
         #         pass # fixme to update the viterbi and backpointer data structures
         #         #  Use costs, not probabilities
 
+        # TODO: fix index out of bounds viterbi_tmp
+
         min_viterbi = float("inf")
         best_tag = ''
-        # for t in observations[1:]: 
+
         for t in range(1, len(observations)):
             self.viterbi[observations[t]] = 0.0
             for s in self.states:
-                # viterbi_tmp = self.viterbi.loc[s][t-1] -(math.log2(self.transition_PD[t-1].prob(s))) - (math.log2(self.emission_PD[t-1].prob(t)))
-                viterbi_tmp = self.viterbi.loc[s][t-1] #- math.log2(self.transition_PD['<s>'].prob(s)) - math.log2(self.emission_PD['<s>'].prob(observations[t]))
+                viterbi_tmp = self.viterbi.loc[s][observations[t]] - (math.log2(self.transition_PD[t-1].prob(s))) - (math.log2(self.emission_PD[t-1].prob(t)))
+                # viterbi_tmp = self.viterbi.loc[s][t-1] - math.log2(self.transition_PD['<s>'].prob(s)) - math.log2(self.emission_PD['<s>'].prob(observations[t]))
                 if (viterbi_tmp < min_viterbi):
                     min_viterbi = min_viterbi
                     best_tag = s
             self.viterbi.loc[s, observations[t]] = min_viterbi
-            self.backpointer.append([s, best_tag])
+            self.backpointer.append([observations[t], best_tag])
 
         # TODO
         # Add a termination step with cost based solely on cost of transition to </s> , end of sentence.
-        bestpathprob = float("inf")
+        bestpathprob = sys.float_info.max
         bestpathpointer = ''
         for s in self.states:
             viterbi_tmp = self.viterbi.loc[s][-1] - math.log2(self.transition_PD[observations[-1]].prob('</s>')) #- math.log2(self.emission_PD[observations[-1]].prob(t))
@@ -412,14 +401,14 @@ def answers():
     ######
     s='the cat in the hat came back'.split()
     model.initialise(s[0])
-    ttags = []#model.tag(s) # fixme
+    ttags = model.tag(s) # fixme
     print("Tagged a trial sentence:\n  %s"%list(zip(s,ttags)))
 
-    v_sample=model.get_viterbi_value('VERB',5)
+    v_sample=model.get_viterbi_value('VERB', 5)
     if not (type(v_sample)==float and 0.0<=v_sample):
            print('viterbi value (%s) must be a cost'%v_sample,file=sys.stderr)
 
-    b_sample=model.get_backpointer_value('VERB',5)
+    b_sample=model.get_backpointer_value('VERB', 5)
     if not (type(b_sample)==str and b_sample in model.states):
            print('backpointer value (%s) must be a state name'%b_sample,file=sys.stderr)
 
@@ -435,11 +424,13 @@ def answers():
 
         for ((word,gold),tag) in zip(sentence,tags):
             if tag == gold:
-                pass # fix me
+                correct += 1
+                # pass # fix me
             else:
-                pass # fix me
+                incorrect +=1
+                # pass # fix me
 
-    accuracy = 0.0 # fix me
+    accuracy = correct / test_size #0.0 # fix me
     print('Tagging accuracy for test set of %s sentences: %.4f'%(test_size,accuracy))
 
     # Print answers for 4b, 5 and 6
