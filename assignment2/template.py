@@ -2,7 +2,6 @@ import inspect, sys, hashlib
 
 # TODO: can I import these libraries?
 import math
-# import numpy as np
 import pandas as pd
 import sys
 
@@ -248,13 +247,6 @@ class HMM:
         # self.backpointer.append(['</s>', bestpathpointer])
         # self.backpointer['</s>'] = bestpathpointer
 
-        # print("viterbi")
-        # print(self.viterbi)
-        # print(bestpathpointer)
-        # print("backpointers")
-        # print(self.backpointer)
-        # print("generating best tag sequence")
-
         # TODO : missing one tag. Handle the 0 backpointer value of first word
         # Reconstruct the tag sequence using the backpointer list.
         # Return the tag sequence corresponding to the best path as a list.
@@ -263,8 +255,6 @@ class HMM:
         tags.append(bestpathpointer)
         # Reverse the order of the words in the list
         reversed_sentence = [list(reversed(tag)) for tag in self.backpointer]
-        # print(len(reversed_sentence[0]))
-        # print(reversed_sentence)
         # Loop through each word in the sentence (reverse order)
         for word_index in range(len(observations)-1):
             # tags.append(self.states[tag_index])
@@ -272,8 +262,6 @@ class HMM:
             tags.append(self.states[tag_index])
         # Reverse the tags to obtain the original ordering
         tags.reverse()
-        # print(observations)
-        # print(tags)
 
         return tags
 
@@ -293,6 +281,7 @@ class HMM:
         :rtype: float
         """
         # raise NotImplementedError('HMM.get_viterbi_value')
+        # TODO: remove the float?? giving error that viterbi value should be a float
         return float(self.viterbi.loc[state][step])
 
     # Access function for testing the backpointer data structure
@@ -456,7 +445,7 @@ def answers():
             counter += 1
             print(sentence)
 
-    accuracy = correct / (incorrect + correct) # fix me
+    accuracy = correct / (incorrect + correct) # fix me - accuracy is off by 0.004
     print('Tagging accuracy for test set of %s sentences: %.4f'%(test_size,accuracy))
 
     # Print answers for 4b, 5 and 6
