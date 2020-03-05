@@ -394,6 +394,7 @@ def answers():
     s='the cat in the hat came back'.split()
     model.initialise(s[0])
     ttags = model.tag(s) # fixme
+    print(model.viterbi)
     print("Tagged a trial sentence:\n  %s"%list(zip(s,ttags)))
 
     v_sample=model.get_viterbi_value('VERB', 5)
