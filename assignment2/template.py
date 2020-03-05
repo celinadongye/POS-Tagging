@@ -84,6 +84,7 @@ class HMM:
         for sent in train_data:
             self.states.extend([tag for (word, tag) in sent])
         self.states = (list(set(self.states)))
+        # Sort states so we can index the states and base the viterbi and backpointer data structures on this ordering
         self.states.sort()
 
         return self.emission_PD, self.states
@@ -178,19 +179,19 @@ class HMM:
         ### DESCRIBE THE DATA STRUCTURES WITH COMMENTS
 
         # Initialize the two data structures
-        ## numpy or pandas or dict??
+        ## numpy or pandas 
         # pandas can add the word itself to each row/column and access it that way
         # need indices for numpy (fixed in size, need to concatenate)
-        # dict is dynamic, grows by simply indexing
 
         #TODO: indexes as column names and states, or actual strings????
-        # self.viterbi = pd.DataFrame(index=self.states, columns=['<s>', observation]) # With each observation, add new column (observation)
-        self.viterbi = pd.DataFrame(index=self.states, columns=[observation])
+        # self.viterbi = pd.DataFrame(index=self.states, columns=[observation])
+        self.viterbi = [[] for s in self.states]
 
         # Compute negative log probability with each tag
         for tag in self.states:
             cost = - self.tlprob('<s>', tag) - self.elprob(tag, observation)
-            self.viterbi.loc[tag][observation] = cost
+            # self.viterbi.loc[tag][observation] = cost
+            self.viterbi[self.states.index(tag)].append(cost)
 
         # Backointer: need iterating through it, and dfs are not suitable for that
         # Initialise step 0 of backpointer
@@ -221,18 +222,20 @@ class HMM:
 
         
         for t in range(1, len(observations)):
-            self.viterbi[observations[t]] = 0.0
+            # self.viterbi[observations[t]] = 0.0
             for s in self.states:
-                min_viterbi = float("inf")
+                min_viterbi = sys.float_info.max
                 best_tag = ''
-                # self.viterbi.loc[s, observations[t]] = min([self.viterbi.loc[s_prev][observations[t-1]] - self.tlprob(s_prev, s) - self.elprob(s, observations[t]) for s_prev in self.states])
                 for s_prev in self.states:
-                    viterbi_tmp = self.viterbi.loc[s_prev][observations[t-1]] - self.tlprob(s_prev, s) - self.elprob(s, observations[t])
+                    # viterbi_tmp = self.viterbi.loc[s_prev][observations[t-1]] - self.tlprob(s_prev, s) - self.elprob(s, observations[t])
+                    viterbi_tmp = self.viterbi[self.states.index(s_prev)][t-1] - self.tlprob(s_prev, s) - self.elprob(s, observations[t])
                     if (viterbi_tmp < min_viterbi):
                         min_viterbi = viterbi_tmp
                         best_tag = s_prev
-                self.viterbi.loc[s, observations[t]] = min_viterbi
-                self.backpointer[self.states.index(s)].append(best_tag)
+                # self.viterbi.loc[s, observations[t]] = min_viterbi
+                s_idx = self.states.index(s)
+                self.viterbi[s_idx].append(min_viterbi)
+                self.backpointer[s_idx].append(best_tag)
                 # self.backpointer[observations[t]] = best_tag
 
         # TODO
@@ -240,7 +243,8 @@ class HMM:
         bestpathprob = sys.float_info.max
         bestpathpointer = ''
         for s in self.states:
-            viterbi_tmp = self.viterbi.loc[s][-1] - self.tlprob(s, '</s>')
+            # viterbi_tmp = self.viterbi.loc[s][-1] - self.tlprob(s, '</s>')
+            viterbi_tmp = self.viterbi[self.states.index(s)][-1] - self.tlprob(s, '</s>')
             if (viterbi_tmp < bestpathprob):
                 bestpathprob = viterbi_tmp
                 bestpathpointer = s
@@ -282,7 +286,8 @@ class HMM:
         """
         # raise NotImplementedError('HMM.get_viterbi_value')
         # TODO: remove the float?? giving error that viterbi value should be a float
-        return float(self.viterbi.loc[state][step])
+        # return float(self.viterbi.loc[state][step])
+        return float(self.viterbi[self.states.index(state)][step])
 
     # Access function for testing the backpointer data structure
     # For example model.get_backpointer_value('VERB',2) might be 'NOUN'
