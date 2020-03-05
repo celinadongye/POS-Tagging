@@ -179,11 +179,8 @@ class HMM:
         ### DESCRIBE THE DATA STRUCTURES WITH COMMENTS
 
         # Initialize the two data structures
-        ## numpy or pandas 
-        # pandas can add the word itself to each row/column and access it that way
-        # need indices for numpy (fixed in size, need to concatenate)
 
-        #TODO: indexes as column names and states, or actual strings????
+        # accessing values through indexes
         # self.viterbi = pd.DataFrame(index=self.states, columns=[observation])
         self.viterbi = [[] for s in self.states]
 
@@ -194,12 +191,10 @@ class HMM:
             self.viterbi[self.states.index(tag)].append(cost)
 
         # Backointer: need iterating through it, and dfs are not suitable for that
-        # Initialise step 0 of backpointer
         # First word of the sentence does not have backpointers
         # Store the state we came from
         # List of lists (tags, and words for each tag). Inner list is the length of the sentence                                                                                                                                                                                               
         self.backpointer = [[0] for s in self.states]
-        # self.backpointer[observation] = 0.0
 
     # Tag a new sentence using the trained model and already initialised data structures.
     # Use the models stored in the variables: self.emission_PD and self.transition_PD.
@@ -215,41 +210,30 @@ class HMM:
         """
         # raise NotImplementedError('HMM.tag')
         tags = []
-        # for t in ...: # fixme to iterate over steps
-        #     for s in ...: # fixme to iterate over states
-        #         pass # fixme to update the viterbi and backpointer data structures
-        #         #  Use costs, not probabilities
-
         
         for t in range(1, len(observations)):
-            # self.viterbi[observations[t]] = 0.0
             for s in self.states:
                 min_viterbi = sys.float_info.max
                 best_tag = ''
                 for s_prev in self.states:
-                    # viterbi_tmp = self.viterbi.loc[s_prev][observations[t-1]] - self.tlprob(s_prev, s) - self.elprob(s, observations[t])
                     viterbi_tmp = self.viterbi[self.states.index(s_prev)][t-1] - self.tlprob(s_prev, s) - self.elprob(s, observations[t])
                     if (viterbi_tmp < min_viterbi):
                         min_viterbi = viterbi_tmp
                         best_tag = s_prev
-                # self.viterbi.loc[s, observations[t]] = min_viterbi
                 s_idx = self.states.index(s)
                 self.viterbi[s_idx].append(min_viterbi)
                 self.backpointer[s_idx].append(best_tag)
-                # self.backpointer[observations[t]] = best_tag
 
         # TODO
         # Add a termination step with cost based solely on cost of transition to </s> , end of sentence.
         bestpathprob = sys.float_info.max
         bestpathpointer = ''
         for s in self.states:
-            # viterbi_tmp = self.viterbi.loc[s][-1] - self.tlprob(s, '</s>')
             viterbi_tmp = self.viterbi[self.states.index(s)][-1] - self.tlprob(s, '</s>')
             if (viterbi_tmp < bestpathprob):
                 bestpathprob = viterbi_tmp
                 bestpathpointer = s
-        # self.backpointer.append(['</s>', bestpathpointer])
-        # self.backpointer['</s>'] = bestpathpointer
+
 
         # TODO : missing one tag. Handle the 0 backpointer value of first word
         # Reconstruct the tag sequence using the backpointer list.
@@ -261,7 +245,6 @@ class HMM:
         reversed_sentence = [list(reversed(tag)) for tag in self.backpointer]
         # Loop through each word in the sentence (reverse order)
         for word_index in range(len(observations)-1):
-            # tags.append(self.states[tag_index])
             tag_index = self.states.index(reversed_sentence[tag_index][word_index])
             tags.append(self.states[tag_index])
         # Reverse the tags to obtain the original ordering
@@ -285,9 +268,8 @@ class HMM:
         :rtype: float
         """
         # raise NotImplementedError('HMM.get_viterbi_value')
-        # TODO: remove the float?? giving error that viterbi value should be a float
-        # return float(self.viterbi.loc[state][step])
-        return float(self.viterbi[self.states.index(state)][step])
+        # return float(self.viterbi[self.states.index(state)][step])
+        return (self.viterbi[self.states.index(state)][step])
 
     # Access function for testing the backpointer data structure
     # For example model.get_backpointer_value('VERB',2) might be 'NOUN'
@@ -305,7 +287,6 @@ class HMM:
         :rtype: str
         """
         # raise NotImplementedError('HMM.get_backpointer_value')
-        # return self.backpointer[step][1]
         return (self.backpointer[self.states.index(state)][step])
 
 def answer_question4b():
@@ -320,8 +301,9 @@ def answer_question4b():
     # One sentence, i.e. a list of word/tag pairs, in two versions
     #  1) As tagged by your HMM
     #  2) With wrong tags corrected by hand
-    tagged_sequence = 'fixme'
-    correct_sequence = 'fixme'
+    tagged_sequence = [('``', '.'), ('My', 'DET'), ('taste', 'NOUN'), ('is', 'VERB'), ('gaudy', 'ADV'), ('.', '.')] #'fixme'
+    correct_sequence = [('``', '.'), ('My', 'DET'), ('taste', 'NOUN'), ('is', 'VERB'), ('gaudy', 'ADJ'), ('.', '.')] #'fixme'
+
     # Why do you think the tagger tagged this example incorrectly?
     answer =  inspect.cleandoc("""\
     fill me in""")[0:280]
@@ -427,18 +409,20 @@ def answers():
     correct = 0
     incorrect = 0
 
+    # TODO: 4b, print first 10 tagged sentences that did not match their correct versions
     # First 10 incorrect taggings of sentences
     counter = 0
-
-    # TODO: 4b, print first 10 tagged sentences that did not match their correct versions
+    
     for sentence in test_data_universal:
         s = [word.lower() for (word, tag) in sentence]
         model.initialise(s[0])
         tags = model.tag(s)
 
         is_match = True
+        wrong_sent = []
 
         for ((word,gold),tag) in zip(sentence,tags):
+            wrong_sent.append(tuple((word, tag)))
             if tag == gold:
                 correct += 1
                 # pass # fix me
@@ -446,11 +430,16 @@ def answers():
                 incorrect += 1
                 is_match = False
                 # pass # fix me
+        
+        # TODO: print model tags
+
+
         if (is_match == False and counter < 10):
             counter += 1
-            print(sentence)
+            print(wrong_sent)
+            print(sentence) # Correct tags
 
-    accuracy = correct / (incorrect + correct) # fix me - accuracy is off by 0.004
+    accuracy = correct / (incorrect + correct)
     print('Tagging accuracy for test set of %s sentences: %.4f'%(test_size,accuracy))
 
     # Print answers for 4b, 5 and 6
