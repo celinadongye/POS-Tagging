@@ -433,21 +433,30 @@ def answers():
     correct = 0
     incorrect = 0
 
+    # First 10 incorrect taggings of sentences
+    counter = 0
+
+    # TODO: 4b, print first 10 tagged sentences that did not match their correct versions
     for sentence in test_data_universal:
         s = [word.lower() for (word, tag) in sentence]
         model.initialise(s[0])
         tags = model.tag(s)
+
+        is_match = True
 
         for ((word,gold),tag) in zip(sentence,tags):
             if tag == gold:
                 correct += 1
                 # pass # fix me
             else:
-                incorrect +=1
+                incorrect += 1
+                is_match = False
                 # pass # fix me
-    print(correct)
-    print(incorrect)
-    accuracy = correct / (incorrect + correct)# * 100 #0.0 # fix me
+        if (is_match == False and counter < 10):
+            counter += 1
+            print(sentence)
+
+    accuracy = correct / (incorrect + correct) # fix me
     print('Tagging accuracy for test set of %s sentences: %.4f'%(test_size,accuracy))
 
     # Print answers for 4b, 5 and 6
