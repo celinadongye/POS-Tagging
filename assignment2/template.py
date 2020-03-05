@@ -255,20 +255,24 @@ class HMM:
         # print(self.backpointer)
         # print("generating best tag sequence")
 
-        # TODO : fix
+        # TODO : missing one tag. Handle the 0 backpointer value of first word
         # Reconstruct the tag sequence using the backpointer list.
         # Return the tag sequence corresponding to the best path as a list.
         # The order should match that of the words in the sentence
         tag_index = self.states.index(bestpathpointer)
+        tags.append(bestpathpointer)
         # Reverse the order of the words in the list
         reversed_sentence = [list(reversed(tag)) for tag in self.backpointer]
+        # print(len(reversed_sentence[0]))
         # print(reversed_sentence)
         # Loop through each word in the sentence (reverse order)
         for word_index in range(len(observations)-1):
-            tags.append(self.states[tag_index])
+            # tags.append(self.states[tag_index])
             tag_index = self.states.index(reversed_sentence[tag_index][word_index])
+            tags.append(self.states[tag_index])
         # Reverse the tags to obtain the original ordering
         tags.reverse()
+        # print(observations)
         # print(tags)
 
         return tags
@@ -443,7 +447,7 @@ def answers():
                 # pass # fix me
     print(correct)
     print(incorrect)
-    accuracy = correct / (incorrect + correct) * 100 #0.0 # fix me
+    accuracy = correct / (incorrect + correct)# * 100 #0.0 # fix me
     print('Tagging accuracy for test set of %s sentences: %.4f'%(test_size,accuracy))
 
     # Print answers for 4b, 5 and 6
