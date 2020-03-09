@@ -1,9 +1,6 @@
 import inspect, sys, hashlib
 
-# TODO: can I import these libraries?
 import math
-import pandas as pd
-import sys
 
 # Hack around a warning message deep inside scikit learn, loaded by nltk :-(
 #  Modelled on https://stackoverflow.com/a/25067818
@@ -69,8 +66,8 @@ class HMM:
         # TODO prepare data
         # Don't forget to lowercase the observation otherwise it mismatches the test data
         # Do NOT add <s> or </s> to the input sentences
-        # flat_list = [pair for sent in train_data for pair in sent]
-        # data = [(tag, word.lower()) for (word, tag) in flat_list]
+
+        # Convert the list(list(tuple)) data into list(tuple)
         data = []
         for sent in train_data:
             data.extend([(tag, word.lower()) for (word, tag) in sent])
@@ -102,6 +99,7 @@ class HMM:
         :return: log base 2 of the estimated emission probability
         :rtype: float
         """
+
         return math.log2(self.emission_PD[state].prob(word))
 
     # Compute transition model using ConditionalProbDist with a LidstonelprobDist estimator.
@@ -170,30 +168,31 @@ class HMM:
         :param observation: the first word in the sentence to tag
         :type observation: str
         """
-        # raise NotImplementedError('HMM.initialise')
+
         # Initialise step 0 of viterbi, including
         #  transition from <s> to observation
         # use costs (-log-base-2 probabilities)
-        # TODO
 
-        ### DESCRIBE THE DATA STRUCTURES WITH COMMENTS
-
-        # Initialize the two data structures
-
+        ### Viterbi
         # accessing values through indexes
-        # self.viterbi = pd.DataFrame(index=self.states, columns=[observation])
+        # Each list in the list represents one state (indexable because we ordered the states)
+        # There will be as many inner lists as number of states
+        # Each inner list will have the length of the sentence to tag, where viterbi[0][0]
+        # for example would represent the probability that the first word of the sentence 
+        # is tagged as the first tag in the ordered list of states.
         self.viterbi = [[] for s in self.states]
 
-        # Compute negative log probability with each tag
+        # Compute negative log probability for each tag
         for tag in self.states:
             cost = - self.tlprob('<s>', tag) - self.elprob(tag, observation)
-            # self.viterbi.loc[tag][observation] = cost
             self.viterbi[self.states.index(tag)].append(cost)
 
-        # Backointer: need iterating through it, and dfs are not suitable for that
+
+        ### Backpointer
+        # List of lists (tags, and words for each tag)
+        # Same structure as Viterbi, but instead of probabilities, we store the state that
+        # we came from
         # First word of the sentence does not have backpointers
-        # Store the state we came from
-        # List of lists (tags, and words for each tag). Inner list is the length of the sentence                                                                                                                                                                                               
         self.backpointer = [[0] for s in self.states]
 
     # Tag a new sentence using the trained model and already initialised data structures.
@@ -208,9 +207,9 @@ class HMM:
         :type observations: list(str)
         :return: List of tags corresponding to each word of the input
         """
-        # raise NotImplementedError('HMM.tag')
+
         tags = []
-        
+        # Tag each observation starting from the second word, since the first word was tagged in initialisation
         for t in range(1, len(observations)):
             for s in self.states:
                 min_viterbi = sys.float_info.max
@@ -224,7 +223,7 @@ class HMM:
                 self.viterbi[s_idx].append(min_viterbi)
                 self.backpointer[s_idx].append(best_tag)
 
-        # TODO
+
         # Add a termination step with cost based solely on cost of transition to </s> , end of sentence.
         bestpathprob = sys.float_info.max
         bestpathpointer = ''
@@ -235,19 +234,16 @@ class HMM:
                 bestpathpointer = s
 
 
-        # TODO : missing one tag. Handle the 0 backpointer value of first word
-        # Reconstruct the tag sequence using the backpointer list.
-        # Return the tag sequence corresponding to the best path as a list.
-        # The order should match that of the words in the sentence
+        # Reconstruct the tag sequence (best path) using the backpointer list
         tag_index = self.states.index(bestpathpointer)
         tags.append(bestpathpointer)
-        # Reverse the order of the words in the list
+        # Reverse the order of the words in the list in order to loop through it
         reversed_sentence = [list(reversed(tag)) for tag in self.backpointer]
         # Loop through each word in the sentence (reverse order)
         for word_index in range(len(observations)-1):
             tag_index = self.states.index(reversed_sentence[tag_index][word_index])
             tags.append(self.states[tag_index])
-        # Reverse the tags to obtain the original ordering
+        # Reverse the tags to obtain the original ordering of the tags corresponding to the sentence
         tags.reverse()
 
         return tags
@@ -267,8 +263,7 @@ class HMM:
         :return: The value (a cost) for state as of step
         :rtype: float
         """
-        # raise NotImplementedError('HMM.get_viterbi_value')
-        # return float(self.viterbi[self.states.index(state)][step])
+
         return (self.viterbi[self.states.index(state)][step])
 
     # Access function for testing the backpointer data structure
@@ -286,7 +281,7 @@ class HMM:
         :return: The state name to go back to at step-1
         :rtype: str
         """
-        # raise NotImplementedError('HMM.get_backpointer_value')
+
         return (self.backpointer[self.states.index(state)][step])
 
 def answer_question4b():
@@ -296,17 +291,24 @@ def answer_question4b():
     :rtype: list(tuple(str,str)), list(tuple(str,str)), str
     :return: your answer [max 280 chars]
     """
-    # raise NotImplementedError('answer_question4b')
 
     # One sentence, i.e. a list of word/tag pairs, in two versions
     #  1) As tagged by your HMM
     #  2) With wrong tags corrected by hand
-    tagged_sequence = [('``', '.'), ('My', 'DET'), ('taste', 'NOUN'), ('is', 'VERB'), ('gaudy', 'ADV'), ('.', '.')] #'fixme'
-    correct_sequence = [('``', '.'), ('My', 'DET'), ('taste', 'NOUN'), ('is', 'VERB'), ('gaudy', 'ADJ'), ('.', '.')] #'fixme'
+
+    tagged_sequence = [("I'm", 'PRT'), ('useless', 'ADJ'), ('for', 'ADP'), ('anything', 'NOUN'), ('but', 'CONJ'), ('racing', 'ADJ'), ('cars', 'NOUN'), ('.', '.')]
+    correct_sequence = [("I'm", 'PRT'), ('useless', 'ADJ'), ('for', 'ADP'), ('anything', 'NOUN'), ('but', 'ADP'), ('racing', 'VERB'), ('cars', 'NOUN'), ('.', '.')]
+
 
     # Why do you think the tagger tagged this example incorrectly?
     answer =  inspect.cleandoc("""\
-    fill me in""")[0:280]
+        Some sentences are ambiguous in terms of attachments and syntactic meaning.
+        The tagging of the sentence above seems correct in both cases, although they
+        both have a different meaning. The tagging by our model is has 'racing' as an
+        adjective attached to 'cars' in order to denote the type of cars these are.
+        On the contrary, the 'correct' tagging takes 'racing' as a verb representing an
+        action. While both are correct taggings, they have different meanings.
+    """)[0:280]
 
     return tagged_sequence, correct_sequence, answer
 
@@ -335,9 +337,14 @@ def answer_question6():
     :rtype: str
     :return: your answer [max 500 chars]
     """
-    raise NotImplementedError('answer_question6')
+    # raise NotImplementedError('answer_question6')
+    # Because the Brown Corpus has a very limited number of tags, words
+    # not recognised by the tagger would have either been incorrectly tagged
+    # or not tagged at all. Because the Universal tagset has a tag 'X' to classify
+    # words as 'other', all the words not recognised would simply be tagged as 'X'.
 
     return inspect.cleandoc("""\
+        
     fill me in""")[0:500]
 
 # Useful for testing
@@ -393,7 +400,7 @@ def answers():
     ######
     s='the cat in the hat came back'.split()
     model.initialise(s[0])
-    ttags = model.tag(s) # fixme
+    ttags = model.tag(s)
     print(model.viterbi)
     print("Tagged a trial sentence:\n  %s"%list(zip(s,ttags)))
 
