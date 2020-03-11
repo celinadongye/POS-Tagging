@@ -63,7 +63,7 @@ class HMM:
         :rtype: Tuple[ConditionalProbDist, list(str)]
         """
 
-        # TODO prepare data
+        # Prepare data
         # Don't forget to lowercase the observation otherwise it mismatches the test data
         # Do NOT add <s> or </s> to the input sentences
 
@@ -72,7 +72,7 @@ class HMM:
         for sent in train_data:
             data.extend([(tag, word.lower()) for (word, tag) in sent])
 
-        # TODO compute the emission model
+        # Compute the emission model
         emission_FD = nltk.probability.ConditionalFreqDist(data)
         lidstone_estimator = lambda fd : nltk.probability.LidstoneProbDist(fd, 0.01, fd.B()+1)
         self.emission_PD = nltk.probability.ConditionalProbDist(emission_FD, lidstone_estimator)
@@ -113,19 +113,18 @@ class HMM:
         :return: The transition probability distribution
         :rtype: ConditionalProbDist
         """
-        # raise NotImplementedError('HMM.transition_model')
-        # TODO: prepare the data
+        # Prepare the data
         data = []
 
         # The data object should be an array of tuples of conditions and observations,
         # in our case the tuples will be of the form (tag_(i),tag_(i+1)).
-        # DON'T FORGET TO ADD THE START SYMBOL </s> and the END SYMB OL </s>
+        # DON'T FORGET TO ADD THE START SYMBOL </s> and the END SYMBOL </s>
         for s in train_data:
             data.append(tuple(("<s>", s[0][1])))
             data.extend([(s[i][1], s[i+1][1]) for i in range(len(s)-1)])
             data.append(tuple((s[-1][1], "</s>")))
 
-        # TODO compute the transition model
+        # Compute the transition model
         transition_FD = nltk.probability.ConditionalFreqDist(data)
         lidstone_estimator = lambda fd : nltk.probability.LidstoneProbDist(fd, 0.01, fd.B()+1)
         self.transition_PD = nltk.probability.ConditionalProbDist(transition_FD, lidstone_estimator)
@@ -302,7 +301,7 @@ def answer_question4b():
 
     # Why do you think the tagger tagged this example incorrectly?
     answer =  inspect.cleandoc("""\
-        Some sentences are ambiguous in terms of attachments and syntactic meaning.
+        Some sentences/words are ambiguous in terms of attachments and syntactic meaning.
         The tagging of the sentence above seems correct in both cases, although they
         both have a different meaning. The tagging by our model is has 'racing' as an
         adjective attached to 'cars' in order to denote the type of cars these are.
@@ -323,10 +322,16 @@ def answer_question5():
     :rtype: str
     :return: your answer [max 500 chars]
     """
-    raise NotImplementedError('answer_question5')
+    # raise NotImplementedError('answer_question5')
 
     return inspect.cleandoc("""\
-    fill me in""")[0:500]
+        Semantics synonyms????
+        Have a dataset of synonyms and if we encounter a word we have not seen before
+        we can map to its synonym and tag it correspondingly.
+
+        Know the probability of a NN following a DET, so if we see a DET and we have not
+        seen the word following it, we will just tag it with the most probable tag.
+    """)[0:500]
 
 def answer_question6():
     """
@@ -337,15 +342,20 @@ def answer_question6():
     :rtype: str
     :return: your answer [max 500 chars]
     """
-    # raise NotImplementedError('answer_question6')
     # Because the Brown Corpus has a very limited number of tags, words
-    # not recognised by the tagger would have either been incorrectly tagged
-    # or not tagged at all. Because the Universal tagset has a tag 'X' to classify
-    # words as 'other', all the words not recognised would simply be tagged as 'X'.
-
+    #     not recognised by the tagger would have either been incorrectly tagged
+    #     or not tagged at all. Because the Universal tagset has a tag 'X' to classify
+    #     words as 'other', all the words not recognised would simply be tagged as 'X'.
+ 
     return inspect.cleandoc("""\
-        
-    fill me in""")[0:500]
+        The Universal tagset has 17 tags, whereas the Brown corpus has 86 tags, significantly
+        more than the Universal tagset. This means, that the tagging by our model would have
+        been quite inaccurate due to the fact the distribution of the the words for each tag 
+        would have been really spread out. That is, with the same training dataset,
+        we would not have had enough words for each tag, and thus, the probabilities of each
+        tag would only differ slightly (the difference would not be very large), and the model
+        would be prone to mistagging words due to the similar probability of each tag.
+    """)[0:500]
 
 # Useful for testing
 def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
