@@ -67,7 +67,7 @@ class HMM:
         # Don't forget to lowercase the observation otherwise it mismatches the test data
         # Do NOT add <s> or </s> to the input sentences
 
-        # Convert the list(list(tuple)) data into list(tuple)
+        # Flatten the list(list(tuple)) data into list(tuple)
         data = []
         for sent in train_data:
             data.extend([(tag, word.lower()) for (word, tag) in sent])
@@ -81,7 +81,7 @@ class HMM:
         for sent in train_data:
             self.states.extend([tag for (word, tag) in sent])
         self.states = (list(set(self.states)))
-        # Sort states so we can index the states and base the viterbi and backpointer data structures on this ordering
+        # Sort states to index the states and construct the viterbi and backpointer data structures based on this ordering
         self.states.sort()
 
         return self.emission_PD, self.states
@@ -172,13 +172,17 @@ class HMM:
         #  transition from <s> to observation
         # use costs (-log-base-2 probabilities)
 
+        """
         ### Viterbi
-        # accessing values through indexes
-        # Each list in the list represents one state (indexable because we ordered the states)
-        # There will be as many inner lists as number of states
-        # Each inner list will have the length of the sentence to tag, where viterbi[0][0]
-        # for example would represent the probability that the first word of the sentence 
-        # is tagged as the first tag in the ordered list of states.
+        :type viterbi: list(list(str))
+        Each list in the list represents one state (indexable because we ordered the states),
+        and there will be as many lists as number of states.
+        Each inner list will have the length of the sentence to tag, i.e., a list of strings
+        where each element in that list is the word in the sentence (in order).
+        E.g. viterbi[0][0] represents the probability that the first word of the sentence 
+        is tagged as the first tag in the ordered list of states.
+        """
+
         self.viterbi = [[] for s in self.states]
 
         # Compute negative log probability for each tag
@@ -187,10 +191,14 @@ class HMM:
             self.viterbi[self.states.index(tag)].append(cost)
 
 
+        """
         ### Backpointer
-        # List of lists (tags, and words for each tag)
-        # Same structure as Viterbi, but instead of probabilities, we store the state that
-        # we came from
+        :type backpointer: list(list(str))
+        Just like viterbi, each list represents a different state. But in this case, each of
+        the inner list of strings is the tag of the previous word, i.e., the tag of the previous
+        word that resulted in the highest proability for the current word. These tags (strings) in
+        the inner list keep the order of the sequence of words of the sentence.
+        """
         # First word of the sentence does not have backpointers
         self.backpointer = [[0] for s in self.states]
 
@@ -211,38 +219,42 @@ class HMM:
         # Tag each observation starting from the second word, since the first word was tagged in initialisation
         for t in range(1, len(observations)):
             for s in self.states:
+                # Lowest probability 
                 min_viterbi = sys.float_info.max
+                # The tag of the previous word, that resulted in the lowest probability for the current word
                 best_tag = ''
+                # Loop through all the possible states of the previous word
                 for s_prev in self.states:
-                    viterbi_tmp = self.viterbi[self.states.index(s_prev)][t-1] - self.tlprob(s_prev, s) - self.elprob(s, observations[t])
-                    if (viterbi_tmp < min_viterbi):
-                        min_viterbi = viterbi_tmp
+                    viterbi_curr = self.viterbi[self.states.index(s_prev)][t-1] - self.tlprob(s_prev, s) - self.elprob(s, observations[t])
+                    if (viterbi_curr < min_viterbi):
+                        min_viterbi = viterbi_curr
                         best_tag = s_prev
+                # Update viterbi and backpointer 
                 s_idx = self.states.index(s)
                 self.viterbi[s_idx].append(min_viterbi)
                 self.backpointer[s_idx].append(best_tag)
 
 
-        # Add a termination step with cost based solely on cost of transition to </s> , end of sentence.
+        # Add termination step based on cost of transition to </s> , end of sentence.
         bestpathprob = sys.float_info.max
         bestpathpointer = ''
         for s in self.states:
-            viterbi_tmp = self.viterbi[self.states.index(s)][-1] - self.tlprob(s, '</s>')
-            if (viterbi_tmp < bestpathprob):
-                bestpathprob = viterbi_tmp
+            viterbi_curr = self.viterbi[self.states.index(s)][-1] - self.tlprob(s, '</s>')
+            if (viterbi_curr < bestpathprob):
+                bestpathprob = viterbi_curr
                 bestpathpointer = s
 
 
         # Reconstruct the tag sequence (best path) using the backpointer list
-        tag_index = self.states.index(bestpathpointer)
+        # Add the best tag for the last word in the sentence
         tags.append(bestpathpointer)
-        # Reverse the order of the words in the list in order to loop through it
+        tag_index = self.states.index(bestpathpointer)
+        # Reverse the order of the words in the list in order to loop through the sentence from the last word
         reversed_sentence = [list(reversed(tag)) for tag in self.backpointer]
-        # Loop through each word in the sentence (reverse order)
         for word_index in range(len(observations)-1):
             tag_index = self.states.index(reversed_sentence[tag_index][word_index])
             tags.append(self.states[tag_index])
-        # Reverse the tags to obtain the original ordering of the tags corresponding to the sentence
+        # Reverse order of the tags to obtain the original ordering corresponding to the sentence
         tags.reverse()
 
         return tags
@@ -298,15 +310,12 @@ def answer_question4b():
     tagged_sequence = [("I'm", 'PRT'), ('useless', 'ADJ'), ('for', 'ADP'), ('anything', 'NOUN'), ('but', 'CONJ'), ('racing', 'ADJ'), ('cars', 'NOUN'), ('.', '.')]
     correct_sequence = [("I'm", 'PRT'), ('useless', 'ADJ'), ('for', 'ADP'), ('anything', 'NOUN'), ('but', 'ADP'), ('racing', 'VERB'), ('cars', 'NOUN'), ('.', '.')]
 
-
     # Why do you think the tagger tagged this example incorrectly?
     answer =  inspect.cleandoc("""\
-        Some sentences/words are ambiguous in terms of attachments and syntactic meaning.
-        The tagging of the sentence above seems correct in both cases, although they
-        both have a different meaning. The tagging by our model is has 'racing' as an
-        adjective attached to 'cars' in order to denote the type of cars these are.
-        On the contrary, the 'correct' tagging takes 'racing' as a verb representing an
-        action. While both are correct taggings, they have different meanings.
+        'but' is tagged as conjunction since this word usually acts as a conjunction but 
+        adposition is the right tag as it means 'except for'.
+        'racing' was tagged as an adjective attached to 'cars' to denote the type of cars, while
+        the 'correct' tagging is verb, representing an action.
     """)[0:280]
 
     return tagged_sequence, correct_sequence, answer
@@ -314,23 +323,21 @@ def answer_question4b():
 def answer_question5():
     """
     Suppose you have a hand-crafted grammar that has 100% coverage on
-        constructions but less than 100% lexical coverage.
-        How could you use a POS tagger to ensure that the grammar
-        produces a parse for any well-formed sentence,
-        even when it doesn't recognise the words within that sentence?
+    constructions but less than 100% lexical coverage.
+    How could you use a POS tagger to ensure that the grammar
+    produces a parse for any well-formed sentence,
+    even when it doesn't recognise the words within that sentence?
 
     :rtype: str
     :return: your answer [max 500 chars]
     """
-    # raise NotImplementedError('answer_question5')
-
+    # TODO 
     return inspect.cleandoc("""\
-        Semantics synonyms????
         Have a dataset of synonyms and if we encounter a word we have not seen before
-        we can map to its synonym and tag it correspondingly.
+        we can map to its synonym and tag it correspondingly. That is, we could consider
+        the semantics of the unseen word to tag it.
 
-        Know the probability of a NN following a DET, so if we see a DET and we have not
-        seen the word following it, we will just tag it with the most probable tag.
+        Smoothing for zero probabilities (tags that have zero probabilities)???
     """)[0:500]
 
 def answer_question6():
@@ -342,19 +349,19 @@ def answer_question6():
     :rtype: str
     :return: your answer [max 500 chars]
     """
-    # Because the Brown Corpus has a very limited number of tags, words
-    #     not recognised by the tagger would have either been incorrectly tagged
-    #     or not tagged at all. Because the Universal tagset has a tag 'X' to classify
-    #     words as 'other', all the words not recognised would simply be tagged as 'X'.
+
+    # Speedup: Smaller number of labels (states) makes Viterbi decoding faster
+    # Universal tagset: 17 tags
+    # Brown corpus: 86 tags
  
     return inspect.cleandoc("""\
-        The Universal tagset has 17 tags, whereas the Brown corpus has 86 tags, significantly
-        more than the Universal tagset. This means, that the tagging by our model would have
-        been quite inaccurate due to the fact the distribution of the the words for each tag 
-        would have been really spread out. That is, with the same training dataset,
-        we would not have had enough words for each tag, and thus, the probabilities of each
-        tag would only differ slightly (the difference would not be very large), and the model
-        would be prone to mistagging words due to the similar probability of each tag.
+        The Brown corpus has significantly more tags than the Universal tagset.
+        With the same training dataset, we would not have enough words that are
+        representative of each possible tag. That is, the distribution of the words
+        for each tag would have been really spread out. Thus, a lot of probabilities
+        would be really small (if not 0) differing only slightly. Consequently, the
+        model would be more prone to mistagging words, and would be more inaccurate.
+        Thus, more training data would be needed.
     """)[0:500]
 
 # Useful for testing
@@ -427,10 +434,8 @@ def answers():
     correct = 0
     incorrect = 0
 
-    # TODO: 4b, print first 10 tagged sentences that did not match their correct versions
-    # First 10 incorrect taggings of sentences
+    # Counter for the first 10 incorrect taggings of sentences
     counter = 0
-    
     for sentence in test_data_universal:
         s = [word.lower() for (word, tag) in sentence]
         model.initialise(s[0])
@@ -443,15 +448,11 @@ def answers():
             wrong_sent.append(tuple((word, tag)))
             if tag == gold:
                 correct += 1
-                # pass # fix me
             else:
                 incorrect += 1
                 is_match = False
-                # pass # fix me
         
-        # TODO: print model tags
-
-
+        # 4b - Print first 10 mistagged sentences
         if (is_match == False and counter < 10):
             counter += 1
             print(wrong_sent)
